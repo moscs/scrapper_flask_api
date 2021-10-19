@@ -1,44 +1,14 @@
-import uuid
 import jwt
 import datetime
-from flask import Flask, request, jsonify, make_response
+import os
 from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.dialects.postgresql import UUID
+from api.models.models import Posts, Users
 from functools import wraps
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-from . import scrapper
 
 
-# Flask config
-app = Flask(__name__)
-
-app.config.from_object("server.config.Config")
-db = SQLAlchemy(app)
-
-# DB Models
-class Users(db.Model):
-     id = db.Column(db.Integer, primary_key=True)
-     public_id = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
-     name = db.Column(db.String(50))
-     password = db.Column(db.String(512))
-     admin = db.Column(db.Boolean)
-
-class Posts(db.Model):
-     id = db.Column(db.Integer, primary_key=True)
-     title = db.Column(db.String(50))
-     date = db.Column(db.Date)
-     author = db.Column(db.String(50))
-     body = db.Column(db.String)
-
-# Scrapper schedule
-scheduler = BackgroundScheduler()
-scheduler.configure({'apscheduler.daemon': False})
-scheduler.start()
-trigger = CronTrigger(hour=6, minute=0)
-scheduler.add_job(scrapper.trip_scrapper, trigger, args=(db, app, Posts))
-
+db = SQLAlchemy()
 
 # Endpoints
 def token_required(f):
@@ -54,7 +24,7 @@ def token_required(f):
          return jsonify({'message': 'a valid token is missing'})
 
       try:
-         data = jwt.decode(token, app.config.SECRET_KEY)
+         data = jwt.decode(token, os.getenv("SECRET", 'Th1s1ss3cr3t'))
          current_user = Users.query.filter_by(public_id=data['public_id']).first()
       except:
          return jsonify({'message': 'token is invalid'})
@@ -63,7 +33,6 @@ def token_required(f):
    return decorator
 
 
-@app.route('/register', methods=['GET', 'POST'])
 def signup_user():  
  data = request.get_json()  
 
@@ -77,7 +46,6 @@ def signup_user():
 
 
 
-@app.route('/login', methods=['GET', 'POST'])  
 def login_user(): 
  
   auth = request.authorization   
@@ -94,9 +62,7 @@ def login_user():
   return make_response('could not verify',  401, {'WWW.Authentication': 'Basic realm: "login required"'})
 
 
-
-@token_required
-@app.route('/threats', methods=['GET'])
+#@token_required
 def get_threats():
    
    posts = Posts.query.all()
@@ -111,3 +77,4 @@ def get_threats():
          output.append(post_data)
 
    return jsonify({'list_of_posts' : output})
+

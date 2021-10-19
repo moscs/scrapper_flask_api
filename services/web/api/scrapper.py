@@ -6,7 +6,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+import logging
 
+logging.basicConfig(level=logging.INFO)
 
 def insert_post(post: dict, db, Posts) -> None:
     new_post = Posts(title=post['title'], date=post['date'], author=post['author'], body=post['post_body'])
@@ -22,6 +24,7 @@ def set_chrome_options() -> None:
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument('incognito')
+    chrome_options.add_argument('log-level=3')
     chrome_prefs = {}
     # chrome_options.experimental_options["prefs"] = chrome_prefs
     # chrome_prefs["profile.default_content_settings"] = {"images": 2}
@@ -32,6 +35,7 @@ def trip_scrapper(db, app, Posts) -> None:
     '''
     Scrap TripAdvisor forums in search of 'Threat' word.
     '''
+    db.init_app(app)
     # Drop existing posts
     db.session.query(Posts).delete()
     db.session.commit()

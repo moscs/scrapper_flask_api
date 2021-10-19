@@ -1,16 +1,19 @@
+from api.webapp import app
+from api.scrapper import trip_scrapper
+from flask_migrate import Migrate
+from api.models.models import db, Posts
 from flask.cli import FlaskGroup
-
-from server import app, db, Posts
-from server.scrapper import trip_scrapper
 
 cli = FlaskGroup(app)
 
-
 @cli.command("create_db")
 def create_db():
-    db.drop_all()
+    app.logger.info('Init db')
+    db.init_app(app)
+    app.logger.info('migrate db')
+    migrate = Migrate(app, db)
+    app.logger.info('create all')
     db.create_all()
-    db.session.commit()
 
 @cli.command("scrapper")
 def launch_scrapper():
